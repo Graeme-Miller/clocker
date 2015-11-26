@@ -84,7 +84,7 @@ public abstract class SdnAgentImpl extends SoftwareProcessImpl implements SdnAge
 
     @Override
     public void preStart() {
-        InetAddress address = sensors().get(SDN_PROVIDER).getNextAgentAddress(getId());
+        InetAddress address = ((DockerSdnProvider) sensors().get(SDN_PROVIDER)).getNextAgentAddress(getId());
         sensors().set(SDN_AGENT_ADDRESS, address);
     }
 
@@ -120,7 +120,7 @@ public abstract class SdnAgentImpl extends SoftwareProcessImpl implements SdnAge
             // Start and then add this virtual network as a child of SDN_NETWORKS
             VirtualNetwork network = provider.sensors().get(SdnProvider.SDN_NETWORKS).addChild(networkSpec);
             Entities.manage(network);
-            Entities.start(network, Collections.singleton(((DockerInfrastructure) provider.sensors().get(SdnProvider.DOCKER_INFRASTRUCTURE)).getDynamicLocation()));
+            Entities.start(network, Collections.singleton(((DockerInfrastructure) provider.sensors().get(DockerSdnProvider.DOCKER_INFRASTRUCTURE)).getDynamicLocation()));
             Entities.waitForServiceUp(network);
         } else {
             Task<Boolean> lookup = TaskBuilder.<Boolean> builder()
