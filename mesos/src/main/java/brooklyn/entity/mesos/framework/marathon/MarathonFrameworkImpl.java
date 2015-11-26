@@ -28,9 +28,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.gson.JsonElement;
 
+import org.apache.brooklyn.api.entity.Application;
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.location.LocationDefinition;
@@ -38,6 +40,7 @@ import org.apache.brooklyn.api.location.LocationRegistry;
 import org.apache.brooklyn.api.mgmt.LocationManager;
 import org.apache.brooklyn.api.mgmt.ManagementContext;
 import org.apache.brooklyn.core.entity.Attributes;
+import org.apache.brooklyn.core.entity.Entities;
 import org.apache.brooklyn.core.entity.EntityPredicates;
 import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.entity.lifecycle.ServiceStateLogic;
@@ -71,6 +74,8 @@ import brooklyn.location.mesos.framework.marathon.MarathonResolver;
 public class MarathonFrameworkImpl extends MesosFrameworkImpl implements MarathonFramework {
 
     private static final Logger LOG = LoggerFactory.getLogger(MarathonFramework.class);
+
+    private transient final Object lock = new Object[0];
 
     private transient HttpFeed httpFeed;
 
@@ -271,4 +276,20 @@ public class MarathonFrameworkImpl extends MesosFrameworkImpl implements Maratho
                 .build();
     }
 
+    @Override
+    public void createJumpHostForApplication(Application application) {
+        synchronized (lock) {
+            Map<String, Entity> jumpHosts = sensors().get(MARATHON_JUMP_HOSTS);
+            if(!jumpHosts.containsKey(application.getApplicationId())) {
+                Entity jumpHost = application.addChild(config().get(MARATHON_JUMP_HOST_SPEC));
+                Entities.manage(jumpHost);
+
+                sensors().set(MARATHON_JUMP_HOSTS, ImmutableMap.<String, Entity>builder()
+                                                                .putAll(jumpHosts)
+                                                                .put(application.getApplicationId(), jumpHost)
+                                                                .build());
+            }
+
+        }
+    }
 }

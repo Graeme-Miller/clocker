@@ -18,12 +18,16 @@ package brooklyn.entity.mesos.framework.marathon;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
 
 import org.apache.brooklyn.api.catalog.Catalog;
+import org.apache.brooklyn.api.entity.Application;
+import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.EntitySpec;
 import org.apache.brooklyn.api.entity.ImplementedBy;
 import org.apache.brooklyn.api.sensor.AttributeSensor;
+import org.apache.brooklyn.api.sensor.Sensor;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.annotation.Effector;
 import org.apache.brooklyn.core.annotation.EffectorParam;
@@ -33,6 +37,7 @@ import org.apache.brooklyn.core.location.dynamic.LocationOwner;
 import org.apache.brooklyn.core.sensor.Sensors;
 
 import brooklyn.entity.mesos.framework.MesosFramework;
+import brooklyn.entity.mesos.jumphost.JumpHost;
 import brooklyn.entity.mesos.task.marathon.MarathonTask;
 import brooklyn.location.mesos.framework.marathon.MarathonLocation;
 
@@ -50,9 +55,13 @@ public interface MarathonFramework extends MesosFramework, LocationOwner<Maratho
 
     AttributeSensor<List<String>> MARATHON_APPLICATIONS = Sensors.newSensor(new TypeToken<List<String>>() { }, "marathon.applications", "List of Marathon applications");
 
+    ConfigKey<EntitySpec> MARATHON_JUMP_HOST_SPEC = ConfigKeys.newConfigKey(EntitySpec.class, "marathon.jump.host.spec", "The Entity specification for a jump host", EntitySpec.create(JumpHost.class));
+
     AttributeSensor<String> MARATHON_VERSION = Sensors.newStringSensor("marathon.version", "Marathon version");
 
     AttributeSensor<String> MARATHON_LEADER_URI = Sensors.newStringSensor("marathon.leader.uri", "Marathon leader URI");
+
+    AttributeSensor<Map<String, Entity>> MARATHON_JUMP_HOSTS = ConfigKeys.newSensorAndConfigKey(new TypeToken<Map<String, Entity>>() {}, "marathon.jump.hosts", "List of Marathon jump hosts", ImmutableMap.<String, Entity>of());
 
     // Effectors
 
@@ -73,5 +82,7 @@ public interface MarathonFramework extends MesosFramework, LocationOwner<Maratho
     @Effector(description="Stop a Marathon application")
     String stopApplication(
             @EffectorParam(name="id", description="Application ID") String id);
+
+    void createJumpHostForApplication(Application application);
 
 }

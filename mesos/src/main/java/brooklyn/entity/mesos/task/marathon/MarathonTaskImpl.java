@@ -281,6 +281,8 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
 
         createLocation(flags);
 
+        getMarathonFramework().createJumpHostForApplication(this.getApplication());
+
         ServiceStateLogic.setExpectedState(this, Lifecycle.RUNNING);
     }
 
