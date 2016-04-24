@@ -411,6 +411,36 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         return Strings.trim(stdout);
     }
 
+    @Override
+    public String execCommandTimeout(String command, Duration timeout) {
+        AbstractSoftwareProcessSshDriver driver = (AbstractSoftwareProcessSshDriver) getDriver();
+        if (driver == null) {
+            throw new NullPointerException("No driver for "+this);
+        }
+        ProcessTaskWrapper<String> task = SshEffectorTasks.ssh(command)
+                .environmentVariables(driver.getShellEnvironment())
+                .requiringZeroAndReturningStdout()
+                .machine(getMachine())
+                .summary(command)
+                .configure(SshMachineLocation.UNIQUE_ID, Identifiers.makeRandomBase64Id(32))
+                .newTask();
+
+        try {
+            String result = DynamicTasks.queueIfPossible(task)
+                    .executionContext(this)
+                    .orSubmitAsync()
+                    .asTask()
+                    .get(timeout);
+            return result;
+        } catch (TimeoutException te) {
+            throw new IllegalStateException("Timed out running command: " + command);
+        } catch (Exception e) {
+            Integer exitCode = task.getExitCode();
+            LOG.warn("Command failed, return code {}: {}", exitCode == null ? -1 : exitCode, task.getStderr());
+            throw Exceptions.propagate(e);
+        }
+    }
+
     /** {@inheritDoc} */
     @Override
     public String deployArchive(String url) {
